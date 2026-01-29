@@ -1,0 +1,192 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ahyan Crew</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0a3d91;
+  color: white;
+}
+header {
+  background: #0b2f6b;
+  padding: 15px;
+  text-align: center;
+}
+main {
+  padding: 15px;
+}
+input, textarea, button, select {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 6px;
+  border: none;
+}
+button {
+  background: #1e90ff;
+  color: white;
+  font-size: 16px;
+}
+.post {
+  background: #144a9c;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+nav {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  background: #0b2f6b;
+}
+nav button {
+  flex: 1;
+  border-radius: 0;
+}
+.hidden { display: none; }
+video {
+  width: 100%;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1 id="title">Welcome to Ahyan Crew</h1>
+</header>
+
+<!-- HOME -->
+<main id="home">
+  <input id="username" placeholder="Username">
+  <textarea id="postText" placeholder="Write a post..."></textarea>
+  <input type="file" id="imageInput" accept="image/*">
+  <button onclick="addPost()">Post</button>
+  <div id="posts"></div>
+</main>
+
+<!-- VIDEO -->
+<main id="video" class="hidden">
+  <video id="preview" autoplay muted></video>
+  <button onclick="startCamera()">Start Camera</button>
+  <button onclick="startRecording()">Record</button>
+  <button onclick="stopRecording()">Stop</button>
+  <p>⚠ Videos are deleted automatically after 3 days</p>
+  <div id="savedVideo"></div>
+</main>
+
+<!-- SETTINGS -->
+<main id="settings" class="hidden">
+  <h2>Settings</h2>
+  <select onchange="setLang(this.value)">
+    <option value="en">English</option>
+    <option value="fi">Suomi</option>
+    <option value="ar">العربية</option>
+    <option value="ja">日本語</option>
+  </select>
+</main>
+
+<!-- NAV -->
+<nav>
+  <button onclick="show('home')">Home</button>
+  <button onclick="show('video')">Video</button>
+  <button onclick="show('settings')">Settings</button>
+</nav>
+
+<script>
+/* NAV */
+function show(id) {
+  document.querySelectorAll("main").forEach(m => m.classList.add("hidden"));
+  document.getElementById(id).classList.remove("hidden");
+}
+
+/* POSTS */
+function addPost() {
+  const user = username.value || "Anonymous";
+  const text = postText.value;
+  const img = imageInput.files[0];
+  const time = new Date().toLocaleString();
+
+  const div = document.createElement("div");
+  div.className = "post";
+  div.innerHTML = `<b>${user}</b><br>${text}<br><small>${time}</small>`;
+
+  if (img) {
+    const url = URL.createObjectURL(img);
+    div.innerHTML += `<br><img src="${url}" width="100%">`;
+  }
+
+  posts.prepend(div);
+  postText.value = "";
+  imageInput.value = "";
+}
+
+/* CAMERA + VIDEO AUTO DELETE */
+let stream, recorder, chunks = [];
+const MAX_DAYS = 3;
+
+window.onload = () => {
+  const saved = localStorage.getItem("ahyanVideo");
+  const savedTime = localStorage.getItem("ahyanVideoTime");
+
+  if (saved && savedTime) {
+    const age = (Date.now() - savedTime) / (1000 * 60 * 60 * 24);
+    if (age <= MAX_DAYS) {
+      const v = document.createElement("video");
+      v.src = saved;
+      v.controls = true;
+      document.getElementById("savedVideo").appendChild(v);
+    } else {
+      localStorage.removeItem("ahyanVideo");
+      localStorage.removeItem("ahyanVideoTime");
+    }
+  }
+};
+
+async function startCamera() {
+  stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+  preview.srcObject = stream;
+}
+
+function startRecording() {
+  chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = e => chunks.push(e.data);
+  recorder.onstop = saveVideo;
+  recorder.start();
+}
+
+function stopRecording() {
+  recorder.stop();
+  stream.getTracks().forEach(t => t.stop());
+}
+
+function saveVideo() {
+  const blob = new Blob(chunks, { type: "video/webm" });
+  const url = URL.createObjectURL(blob);
+  localStorage.setItem("ahyanVideo", url);
+  localStorage.setItem("ahyanVideoTime", Date.now());
+  location.reload();
+}
+
+/* LANGUAGE */
+const text = {
+  en: "Welcome to Ahyan Crew",
+  fi: "Tervetuloa Ahyan Crew'hun",
+  ar: "مرحبًا بكم في Ahyan Crew",
+  ja: "Ahyan Crewへようこそ"
+};
+function setLang(l) {
+  title.innerText = text[l];
+}
+</script>
+
+</body>
+</html>
